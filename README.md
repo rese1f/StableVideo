@@ -48,4 +48,6 @@ the result `.mp4` video and keyframe will be stored in the directory `./log` aft
 ## Sample Results
 We are planning to release more results.
 
+https://user-images.githubusercontent.com/58205475/224543696-2c49fd92-3210-4961-91ff-cc638566e756.mp4
+
 ## Citation
