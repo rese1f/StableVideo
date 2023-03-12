@@ -1,4 +1,4 @@
-name: control
+name: stablevideo
 channels:
   - pytorch
   - defaults
