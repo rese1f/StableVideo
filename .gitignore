@@ -145,3 +145,5 @@ dmypy.json
 # data
 /data
 /log
+/logs
+/debug
