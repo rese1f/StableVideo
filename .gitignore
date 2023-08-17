@@ -142,8 +142,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# data
-/data
-/log
-/logs
-/debug
+data/

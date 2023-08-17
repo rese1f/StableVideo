@@ -1,6 +1,3 @@
-from share import *
-import config
-
 import os
 import shutil  
 import cv2
@@ -23,7 +20,6 @@ from pytorch_lightning import seed_everything
 from annotator.util import resize_image, HWC3
 from annotator.canny import CannyDetector
 from annotator.midas import MidasDetector
-from annotator.uniformer import UniformerDetector
 from cldm.model import create_model, load_state_dict
 from ldm.models.diffusion.ddim import DDIMSampler
 from stablevideo.atlas_data import AtlasData
@@ -31,7 +27,7 @@ from stablevideo.atlas_utils import get_grid_indices, get_atlas_bounding_box
 from stablevideo.aggnet import AGGNet
 
 
-class VideoE:
+class StableVideo:
     def __init__(self, base_cfg, canny_model_cfg, depth_model_cfg):
         self.base_cfg = base_cfg
         self.canny_model_cfg = canny_model_cfg
@@ -46,24 +42,24 @@ class VideoE:
     
     def load_canny_model(
         self,
-        base_cfg='./models/cldm_v15.yaml',
-        canny_model_cfg='./models/control_sd15_canny.pth',
+        base_cfg='ckpt/cldm_v15.yaml',
+        canny_model_cfg='ckpt/control_sd15_canny.pth',
     ):
         self.apply_canny = CannyDetector()
         canny_model = create_model(base_cfg).cpu()
-        canny_model.load_state_dict(load_state_dict(canny_model_cfg, location='cuda'))
+        canny_model.load_state_dict(load_state_dict(canny_model_cfg, location='cuda'), strict=False)
         canny_model = canny_model.cuda()
         self.canny_ddim_sampler = DDIMSampler(canny_model)
         self.canny_model = canny_model
         
     def load_depth_model(
         self,
-        base_cfg='./models/cldm_v15.yaml',
-        depth_model_cfg='./models/control_sd15_depth.pth',
+        base_cfg='ckpt/cldm_v15.yaml',
+        depth_model_cfg='ckpt/control_sd15_depth.pth',
     ):
         self.apply_midas = MidasDetector()
         depth_model = create_model(base_cfg).cpu()
-        depth_model.load_state_dict(load_state_dict(depth_model_cfg, location='cuda'))
+        depth_model.load_state_dict(load_state_dict(depth_model_cfg, location='cuda'), strict=False)
         depth_model = depth_model.cuda()
         self.depth_ddim_sampler = DDIMSampler(depth_model)
         self.depth_model = depth_model
@@ -119,29 +115,18 @@ class VideoE:
             seed = random.randint(0, 65535)
         seed_everything(seed)
 
-        if config.save_memory:
-            model.low_vram_shift(is_diffusing=False)
-
         cond = {"c_concat": [control], "c_crossattn": [model.get_learned_conditioning([prompt + ', ' + a_prompt] * num_samples)]}
         un_cond = {"c_concat": [control], "c_crossattn": [model.get_learned_conditioning([n_prompt] * num_samples)]}
         shape = (4, H // 8, W // 8)
-
-        if config.save_memory:
-            model.low_vram_shift(is_diffusing=True)
 
         samples, intermediates = ddim_sampler.sample(ddim_steps, num_samples,
                                                      shape, cond, verbose=False, eta=eta,
                                                      unconditional_guidance_scale=scale,
                                                      unconditional_conditioning=un_cond)
-
-        if config.save_memory:
-            model.low_vram_shift(is_diffusing=False)
-
         x_samples = model.decode_first_stage(samples)
         x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
 
         results = [x_samples[i] for i in range(num_samples)]
-        # results = [detected_map] + results
         self.b_atlas = Image.fromarray(results[0]).resize(size)
         return self.b_atlas
     
@@ -150,67 +135,6 @@ class VideoE:
         input_image = self.b_atlas_origin
         self.depth_edit(input_image, *args, **kwargs)
         return self.b_atlas
-    
-    @torch.no_grad()
-    def render(self):
-        # foreground
-        if self.f_atlas == None:
-            f_atlas = self.f_atlas_origin
-        else:
-            f_atlas = self.f_atlas
-        f_atlas = transforms.ToTensor()(f_atlas).unsqueeze(0).cuda()
-        f_atlas = torch.nn.functional.pad(
-            f_atlas,
-            pad=(
-                self.data.foreground_atlas_bbox[1],
-                self.data.foreground_grid_atlas.shape[-1] - (self.data.foreground_atlas_bbox[1] + self.data.foreground_atlas_bbox[3]),
-                self.data.foreground_atlas_bbox[0],
-                self.data.foreground_grid_atlas.shape[-2] - (self.data.foreground_atlas_bbox[0] + self.data.foreground_atlas_bbox[2]),
-            ),
-            mode="replicate",
-        )
-        foreground_edit = F.grid_sample(
-            f_atlas, self.data.scaled_foreground_uvs, mode="bilinear", align_corners=self.data.config["align_corners"]
-        ).clamp(min=0.0, max=1.0)
-        
-        foreground_edit = foreground_edit.squeeze().t()  # shape (batch, 3)
-        foreground_edit = (
-            foreground_edit.reshape(self.data.config["maximum_number_of_frames"], self.data.config["resy"], self.data.config["resx"], 3)
-            .permute(0, 3, 1, 2)
-            .clamp(min=0.0, max=1.0)
-        )
-        # background
-        if self.b_atlas == None:
-            b_atlas = self.b_atlas_origin
-        else:
-            b_atlas = self.b_atlas
-        b_atlas = transforms.ToTensor()(b_atlas).unsqueeze(0).cuda()
-        background_edit = F.grid_sample(
-            b_atlas, self.data.scaled_background_uvs, mode="bilinear", align_corners=self.data.config["align_corners"]
-        ).clamp(min=0.0, max=1.0)
-        background_edit = background_edit.squeeze().t()  # shape (batch, 3)
-        background_edit = (
-            background_edit.reshape(self.data.config["maximum_number_of_frames"], self.data.config["resy"], self.data.config["resx"], 3)
-            .permute(0, 3, 1, 2)
-            .clamp(min=0.0, max=1.0)
-        )
-        
-        output_video = (
-                self.data.all_alpha * foreground_edit
-                + (1 - self.data.all_alpha) * background_edit
-        )
-        id = time.time()
-        os.mkdir(f"log/{id}")
-        save_name = f"log/{id}/video.mp4"
-        imageio.mimwrite(save_name, (255 * output_video.detach().cpu()).to(torch.uint8).permute(0, 2, 3, 1))
-        
-        keyframes = range(70)
-        for index in keyframes:
-            try:
-                transforms.ToPILImage()(output_video[index]).save(f"log/{id}/{index}.png")
-            except:
-                continue
-        return save_name
     
     def advanced_edit_foreground(self, 
                                 keyframes="0", 
@@ -226,6 +150,7 @@ class VideoE:
                                 scale=9, 
                                 seed=-1, 
                                 eta=0,
+                                if_net=False,
                                 num_samples=1):
         
         keyframes = [int(x) for x in keyframes.split(",")]
@@ -320,48 +245,104 @@ class VideoE:
         # aggregate via simple median as begining
         agg_atlas, _ = torch.median(f_atlas, dim=0)
         
-        #####################################
-        # aggregate net        
-        lr, n_epoch = 1e-3, 500
-        pbar = tqdm(total=n_epoch)
-        agg_net = AGGNet().cuda()
-        loss_fn = nn.L1Loss()
-        optimizer = optim.SGD(agg_net.parameters(), lr=lr, momentum=0.9)
-        for _ in range(n_epoch):
-            loss = 0.
-            for i in range(n_keyframes):
-                e_img = result_list[i]
-                temp_agg_atlas = agg_net(agg_atlas)
-                rec_img = F.grid_sample(temp_agg_atlas[None], 
-                                        self.crops['foreground_uvs'][i].reshape(1, -1, 1, 2), 
-                                        mode="bilinear", 
-                                        align_corners=self.data.config["align_corners"])
-                rec_img = rec_img.clamp(min=0.0, max=1.0).reshape(e_img.shape)
-                loss += loss_fn(rec_img, e_img)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            pbar.set_postfix(loss = loss.item())
-            pbar.update(1)
-        agg_atlas = agg_net(agg_atlas)
+        if if_net == True:
+            #####################################
+            #           aggregate net           #
+            #####################################
+            lr, n_epoch = 1e-3, 500
+            agg_net = AGGNet().cuda()
+            loss_fn = nn.L1Loss()
+            optimizer = optim.SGD(agg_net.parameters(), lr=lr, momentum=0.9)
+            for _ in range(n_epoch):
+                loss = 0.
+                for i in range(n_keyframes):
+                    e_img = result_list[i]
+                    temp_agg_atlas = agg_net(agg_atlas)
+                    rec_img = F.grid_sample(temp_agg_atlas[None], 
+                                            self.crops['foreground_uvs'][i].reshape(1, -1, 1, 2), 
+                                            mode="bilinear", 
+                                            align_corners=self.data.config["align_corners"])
+                    rec_img = rec_img.clamp(min=0.0, max=1.0).reshape(e_img.shape)
+                    loss += loss_fn(rec_img, e_img)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            agg_atlas = agg_net(agg_atlas)
         #####################################
         
         agg_atlas, _ = get_atlas_bounding_box(self.data.mask_boundaries, agg_atlas, self.data.foreground_all_uvs)
         self.f_atlas = transforms.ToPILImage()(agg_atlas)
         return self.f_atlas
 
+    @torch.no_grad()
+    def render(self, f_atlas, b_atlas):
+        # foreground
+        if f_atlas == None:
+            f_atlas = transforms.ToTensor()(self.f_atlas_origin).unsqueeze(0).cuda()
+        else:
+            f_atlas, mask = f_atlas["image"], f_atlas["mask"]
+            f_atlas_origin = transforms.ToTensor()(self.f_atlas_origin).unsqueeze(0).cuda()
+            f_atlas = transforms.ToTensor()(f_atlas).unsqueeze(0).cuda()
+            mask = transforms.ToTensor()(mask).unsqueeze(0).cuda()
+            f_atlas = f_atlas * (1 - mask) + f_atlas_origin * mask
+        
+        f_atlas = torch.nn.functional.pad(
+            f_atlas,
+            pad=(
+                self.data.foreground_atlas_bbox[1],
+                self.data.foreground_grid_atlas.shape[-1] - (self.data.foreground_atlas_bbox[1] + self.data.foreground_atlas_bbox[3]),
+                self.data.foreground_atlas_bbox[0],
+                self.data.foreground_grid_atlas.shape[-2] - (self.data.foreground_atlas_bbox[0] + self.data.foreground_atlas_bbox[2]),
+            ),
+            mode="replicate",
+        )
+        foreground_edit = F.grid_sample(
+            f_atlas, self.data.scaled_foreground_uvs, mode="bilinear", align_corners=self.data.config["align_corners"]
+        ).clamp(min=0.0, max=1.0)
+        
+        foreground_edit = foreground_edit.squeeze().t()  # shape (batch, 3)
+        foreground_edit = (
+            foreground_edit.reshape(self.data.config["maximum_number_of_frames"], self.data.config["resy"], self.data.config["resx"], 3)
+            .permute(0, 3, 1, 2)
+            .clamp(min=0.0, max=1.0)
+        )
+        # background
+        if b_atlas == None:
+            b_atlas = self.b_atlas_origin
+
+        b_atlas = transforms.ToTensor()(b_atlas).unsqueeze(0).cuda()
+        background_edit = F.grid_sample(
+            b_atlas, self.data.scaled_background_uvs, mode="bilinear", align_corners=self.data.config["align_corners"]
+        ).clamp(min=0.0, max=1.0)
+        background_edit = background_edit.squeeze().t()  # shape (batch, 3)
+        background_edit = (
+            background_edit.reshape(self.data.config["maximum_number_of_frames"], self.data.config["resy"], self.data.config["resx"], 3)
+            .permute(0, 3, 1, 2)
+            .clamp(min=0.0, max=1.0)
+        )
+        
+        output_video = (
+                self.data.all_alpha * foreground_edit
+                + (1 - self.data.all_alpha) * background_edit
+        )
+        id = time.time()
+        os.mkdir(f"log/{id}")
+        save_name = f"log/{id}/video.mp4"
+        imageio.mimwrite(save_name, (255 * output_video.detach().cpu()).to(torch.uint8).permute(0, 2, 3, 1))
+        
+        return save_name
 
 if __name__ == '__main__':
-    videoe = VideoE(base_cfg="./models/cldm_v15.yaml",
-                    canny_model_cfg="./models/control_sd15_canny.pth",
-                    depth_model_cfg="./models/control_sd15_depth.pth")
-    videoe.load_canny_model()
-    videoe.load_depth_model()
+    stablevideo = StableVideo(base_cfg="ckpt/cldm_v15.yaml",
+                              canny_model_cfg="ckpt/control_sd15_canny.pth",
+                              depth_model_cfg="ckpt/control_sd15_depth.pth")
+    stablevideo.load_canny_model()
+    stablevideo.load_depth_model()
     
     block = gr.Blocks().queue()
     with block:
         with gr.Row():
-            gr.Markdown("## VideoE")
+            gr.Markdown("## StableVideo")
         with gr.Row():
             with gr.Column():
                 original_video = gr.Video(label="Original Video", interactive=False)
@@ -369,7 +350,7 @@ if __name__ == '__main__':
                     foreground_atlas = gr.Image(label="Foreground Atlas", type="pil")
                     background_atlas = gr.Image(label="Background Atlas", type="pil")
                 gr.Markdown("### Step 1. select one example video and click **Load Video** buttom and wait for 10 sec.")
-                avail_video = [f.name for f in os.scandir("./data") if f.is_dir()]
+                avail_video = [f.name for f in os.scandir("data") if f.is_dir()]
                 video_name = gr.Radio(choices=avail_video,
                                       label="Select Example Videos",
                                       value="car-turn")
@@ -391,9 +372,9 @@ if __name__ == '__main__':
                         adv_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
                         adv_eta = gr.Number(label="eta (DDIM)", value=0.0)
                         adv_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed, no background')
-                        adv_n_prompt = gr.Textbox(label="Negative Prompt",
-                                            value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
-                
+                        adv_n_prompt = gr.Textbox(label="Negative Prompt", value='lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
+                        adv_if_net = gr.gradio.Checkbox(label="if use agg net", value=False)
+                        
                     with gr.Accordion("Background Options", open=False):
                         b_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
                         b_detect_resolution = gr.Slider(label="Depth Resolution", minimum=128, maximum=1024, value=512, step=1)
@@ -406,13 +387,13 @@ if __name__ == '__main__':
                                             value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
                 gr.Markdown("### Step 3. edit each one and render.")
                 with gr.Row():
-                    # f_run_button = gr.Button("Edit Foreground")
                     f_advance_run_button = gr.Button("Advanced Edit Foreground (slower, better)")
                     b_run_button = gr.Button("Edit Background")
                 run_button = gr.Button("Render")
             with gr.Column():
                 output_video = gr.Video(label="Output Video", interactive=False)
-                output_foreground_atlas = gr.Image(label="Output Foreground Atlas", type="pil", interactive=False)
+                # output_foreground_atlas = gr.Image(label="Output Foreground Atlas", type="pil", interactive=False)
+                output_foreground_atlas = gr.Image(label="Editable Output Foreground Atlas", type="pil", tool="sketch", interactive=True)
                 output_background_atlas = gr.Image(label="Output Background Atlas", type="pil", interactive=False)
         
         # edit param
@@ -428,7 +409,8 @@ if __name__ == '__main__':
                             adv_s,
                             adv_scale, 
                             adv_seed, 
-                            adv_eta]
+                            adv_eta,
+                            adv_if_net]
         b_edit_param = [b_prompt, 
                         b_a_prompt, 
                         b_n_prompt, 
@@ -439,8 +421,9 @@ if __name__ == '__main__':
                         b_seed,
                         b_eta]
         # action
-        load_video_button.click(fn=videoe.load_video, inputs=video_name, outputs=[original_video, foreground_atlas, background_atlas])
-        f_advance_run_button.click(fn=videoe.advanced_edit_foreground, inputs=f_adv_edit_param, outputs=[output_foreground_atlas])
-        b_run_button.click(fn=videoe.edit_background, inputs=b_edit_param, outputs=[output_background_atlas])
-        run_button.click(fn=videoe.render, outputs=[output_video])
+        load_video_button.click(fn=stablevideo.load_video, inputs=video_name, outputs=[original_video, foreground_atlas, background_atlas])
+        f_advance_run_button.click(fn=stablevideo.advanced_edit_foreground, inputs=f_adv_edit_param, outputs=[output_foreground_atlas])
+        b_run_button.click(fn=stablevideo.edit_background, inputs=b_edit_param, outputs=[output_background_atlas])
+        run_button.click(fn=stablevideo.render, inputs=[output_foreground_atlas, output_background_atlas], outputs=[output_video])
+    
     block.launch(share=True)
