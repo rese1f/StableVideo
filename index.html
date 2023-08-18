@@ -1,0 +1,108 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0045)http://6.869.csail.mit.edu/fa19/schedule.html -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<link href="https://fonts.cdnfonts.com/css/caveat" rel="stylesheet">
+<style>
+    @import url('https://fonts.cdnfonts.com/css/caveat');
+	a { text-decoration : none; }
+	a:hover { text-decoration : underline; }
+	a, a:visited { color : #6e6f71; }
+	body {
+		font-family: Computer Modern Roman;
+		line-height: 1;
+	}
+	h2 {
+		font-family: Computer Modern Roman;
+	}
+	p{
+		margin: 0.8em 0;
+		line-height: 1.25;
+	}
+
+</style>
+
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link href="style.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+    </style>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link href="style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+	  <p class="title" >
+		<div style="text-align: center";><h2 ><font style="font-family:Computer Modern Roman;font-weight: 600;">
+            StableVideo: Text-driven Consistency-aware Diffusion Video Editing</font></h2></div></p>
+	  <p class="author" style="text-align: center;">
+		  <span class="author">
+			  <a href="https://rese1f.github.io/">Wenhao Chai</a><sup>2</sup>,
+		  </span>
+		  <span class="author">
+			  Xun Guo<sup>2&#9993;</sup>,
+		  </span>
+		  <span class="author">
+			  Gaoang Wang<sup>1</sup>
+		  </span>
+          <span class="author">
+            Yan Lu<sup>2</sup>,
+        </span>
+	  </p>
+  
+	  <p class="affiliations" style="text-align: center;">
+		  <span class="author"><sup>1 </sup>Zhejiang Unversity &nbsp;&nbsp;<sup>2 </sup>Microsoft Research Asia</span>
+	  </p>
+  
+	  <p class="menu" style="text-align: center;">
+		  <a style="color: #990036" href="">[Paper]</a> 
+		  <a style="color: #990036" href="https://github.com/rese1f/StableVideo" >[Code]</a>
+	  </p>
+      
+	  <h3 style="text-align: center;">Abstract</h3>
+	  <p style="text-align: justify; display: flex; justify-content: center; max-width: 800px; margin:auto; font-family:Computer Modern Roman; font-size: larger;"> 
+		Diffusion-based methods can generate realistic images and videos, but they struggle to edit existing objects in a video while preserving their appearance over time. This prevents diffusion models from being applied to natural video editing in practical scenarios. In this paper, we tackle this problem by introducing temporal dependency to existing text-driven diffusion models, which allows them to generate consistent appearance for the edited objects. Specifically, we develop a novel inter-frame propagation mechanism for diffusion video editing, which leverages the concept of layered representations to propagate the appearance information from one frame to the next. We then build up a text-driven video editing framework based on this mechanism, namely StableVideo, which can achieve consistency-aware video editing. Extensive experiments demonstrate the strong editing capability of our approach. Compared with state-of-the-art video editing methods, our approach shows superior qualitative and quantitative results.
+	  </p>
+
+      <h3 style="text-align: center;">Overview</h3>
+	  <div style="text-align: center;">
+		<img src="assets/overview.png" style="width: 800px">
+	  </div>
+
+      <h3 style="text-align: center;">Results</h3>
+	  
+      <div id="videoCarousel" class="carousel slide" data-ride="carousel" data-interval="0">
+        <div class="carousel-inner">
+           <div class="carousel-item active">
+              <video class="img-fluid" autoplay loop muted>
+                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
+              </video>
+           </div>
+           <div class="carousel-item">
+              <video class="img-fluid" autoplay loop muted>
+                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
+              </video>
+           </div>
+           <div class="carousel-item">
+              <video class="img-fluid" autoplay loop muted>
+                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
+              </video>
+           </div>
+           <div class="carousel-item">
+              <video class="img-fluid" autoplay loop muted>
+                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
+              </video>
+           </div>
+        </div>
+
+	    
+</body>
+
+ <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+ <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</html>
