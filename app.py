@@ -393,7 +393,7 @@ if __name__ == '__main__':
             with gr.Column():
                 output_video = gr.Video(label="Output Video", interactive=False)
                 # output_foreground_atlas = gr.Image(label="Output Foreground Atlas", type="pil", interactive=False)
-                output_foreground_atlas = gr.Image(label="Editable Output Foreground Atlas", type="pil", tool="sketch", interactive=True)
+                output_foreground_atlas = gr.ImageMask(label="Editable Output Foreground Atlas", type="pil", tool="sketch", interactive=True)
                 output_background_atlas = gr.Image(label="Output Background Atlas", type="pil", interactive=False)
         
         # edit param
