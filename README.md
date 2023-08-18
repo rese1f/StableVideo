@@ -1,4 +1,8 @@
-# StableVideo: Text-driven Consistency-aware Diffusion Video Editing
+# StableVideo
+
+> StableVideo: Text-driven Consistency-aware Diffusion Video Editing  
+> [Wenhao Chai](https://rese1f.github.io/), Xun Guo, Gaoang Wang, Yan Lu  
+> ICCV 2023
 
 https://github.com/rese1f/StableVideo/assets/58205475/558555f1-711c-46f0-85bc-9c229ff1f511
 
