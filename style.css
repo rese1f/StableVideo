@@ -195,13 +195,13 @@ code {
  height: 300px;
  }
  .carousel-item {
- /* height: 234px; */
+ height: 234px;
  overflow: hidden;
- /* width: 100%; */
+ width: 100%;
  text-align: center;
  }
  .carousel-item img {
- /* width: 100%; */
+ width: 100%;
  }
  .carousel-inner .item img {
  margin:auto;

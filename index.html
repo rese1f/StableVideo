@@ -62,41 +62,62 @@
 		  <a style="color: #990036" href="https://github.com/rese1f/StableVideo" >[Code]</a>
 	  </p>
       
+      <p class="section">&nbsp;</p>
+
+      <div class="container">
+       <div id="videoCarousel" class="carousel slide" data-ride="carousel" data-interval="0">
+           <div class="carousel-inner">
+              <div class="carousel-item active">
+                 <video class="img-fluid" autoplay loop muted>
+                    <source src="videos/boat.mp4" type="video/mp4">
+                 </video>
+              </div>
+              <div class="carousel-item">
+                 <video class="img-fluid" autoplay loop muted>
+                    <source src="videos/blackswan.mp4" type="video/mp4">
+                 </video>
+              </div>
+              <div class="carousel-item">
+                 <video class="img-fluid" autoplay loop muted>
+                    <source src="videos/car.mp4" type="video/mp4">
+                 </video>
+              </div>
+           </div>
+           <a class="carousel-control-prev" href="#videoCarousel" role="button" data-slide="prev">
+              <div class="slider-navigation-previous">
+                 <svg viewBox="0 0 50 80" xml:space="preserve">
+                    <polyline fill="white" stroke-width=".5em" stroke-linecap="round" stroke-linejoin="round" points="45.63,75.8 0.375,38.087 45.63,0.375 "></polyline>
+                 </svg>
+              </div>
+              <span class="sr-only">Previous</span>
+           </a>
+           <a class="carousel-control-next" href="#videoCarousel" role="button" data-slide="next">
+              <div class="slider-navigation-next">
+                 <svg viewBox="0 0 50 80" xml:space="preserve">
+                    <polyline fill="white" stroke-width=".5em" stroke-linecap="round" stroke-linejoin="round" points="0.375,0.375 45.63,38.087 0.375,75.8 "></polyline>
+                 </svg>
+              </div>
+              <span class="sr-only">Next</span>
+           </a>
+        </div>
+
+      <p class="section">&nbsp;</p>
+
 	  <h3 style="text-align: center;">Abstract</h3>
 	  <p style="text-align: justify; display: flex; justify-content: center; max-width: 800px; margin:auto; font-family:Computer Modern Roman; font-size: larger;"> 
 		Diffusion-based methods can generate realistic images and videos, but they struggle to edit existing objects in a video while preserving their appearance over time. This prevents diffusion models from being applied to natural video editing in practical scenarios. In this paper, we tackle this problem by introducing temporal dependency to existing text-driven diffusion models, which allows them to generate consistent appearance for the edited objects. Specifically, we develop a novel inter-frame propagation mechanism for diffusion video editing, which leverages the concept of layered representations to propagate the appearance information from one frame to the next. We then build up a text-driven video editing framework based on this mechanism, namely StableVideo, which can achieve consistency-aware video editing. Extensive experiments demonstrate the strong editing capability of our approach. Compared with state-of-the-art video editing methods, our approach shows superior qualitative and quantitative results.
 	  </p>
+
+      <p class="section">&nbsp;</p>
 
       <h3 style="text-align: center;">Overview</h3>
 	  <div style="text-align: center;">
 		<img src="assets/overview.png" style="width: 800px">
 	  </div>
 
-      <h3 style="text-align: center;">Results</h3>
-	  
-      <div id="videoCarousel" class="carousel slide" data-ride="carousel" data-interval="0">
-        <div class="carousel-inner">
-           <div class="carousel-item active">
-              <video class="img-fluid" autoplay loop muted>
-                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
-              </video>
-           </div>
-           <div class="carousel-item">
-              <video class="img-fluid" autoplay loop muted>
-                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
-              </video>
-           </div>
-           <div class="carousel-item">
-              <video class="img-fluid" autoplay loop muted>
-                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
-              </video>
-           </div>
-           <div class="carousel-item">
-              <video class="img-fluid" autoplay loop muted>
-                 <source src="assets/car-turn/car-turn.mp4" type="video/mp4">
-              </video>
-           </div>
-        </div>
+      <p class="section">&nbsp;</p>
+
+      <!-- <h3 style="text-align: center;">Results</h3> -->
 
 	    
 </body>
