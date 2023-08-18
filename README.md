@@ -1,4 +1,4 @@
-# StableVideo
+# StableVideo: Text-driven Consistency-aware Diffusion Video Editing
 
 ## Installation
 ```
@@ -12,8 +12,8 @@ pip install -r requirements.txt
 All models and detectors can be downloaded from ControlNet Hugging Face page. [Download Link](https://huggingface.co/lllyasviel/ControlNet)
 
 
-## Download sample videos
-
+## Download example videos
+Download the example atlas pretrained by [Text2Live](https://github.com/omerbt/Text2LIVE#download-sample-images-and-videos).
 
 You can also train on your own video following [NLA](https://github.com/ykasten/layered-neural-atlases).
 
@@ -42,7 +42,6 @@ Run the following command to start. We provide some [prompt template](prompt_tem
 python app.py
 ```
 the result `.mp4` video and keyframe will be stored in the directory `./log` after clicking `render` button.
-
 
 ## Acknowledgement
 
