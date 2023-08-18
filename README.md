@@ -16,11 +16,11 @@ pip install -r requirements.txt
 
 ## Download Pretrained Model
 
-All models and detectors can be downloaded from ControlNet Hugging Face page. [Download Link](https://huggingface.co/lllyasviel/ControlNet)
+All models and detectors can be downloaded from ControlNet Hugging Face page at [Download Link](https://huggingface.co/lllyasviel/ControlNet).
 
 
 ## Download example videos
-Download the example atlas pretrained by [Text2Live](https://github.com/omerbt/Text2LIVE#download-sample-images-and-videos).
+Download the example atlas for car-turn, boat, libby, blackswa, bear, bicycle_tali, giraffe, kite-surf, lucia and motorbike at [Download Link](https://www.dropbox.com/s/oiyhbiqdws2p6r1/nla_share.zip?dl=0) shared by [Text2LIVE](https://github.com/omerbt/Text2LIVE) authors.
 
 You can also train on your own video following [NLA](https://github.com/ykasten/layered-neural-atlases).
 
