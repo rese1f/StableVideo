@@ -1,5 +1,7 @@
 # StableVideo
 
+[![](http://img.shields.io/badge/cs.CV-arXiv%3A2308.09592-B31B1B.svg)](https://arxiv.org/abs/2308.09592)
+
 > StableVideo: Text-driven Consistency-aware Diffusion Video Editing  
 > [Wenhao Chai](https://rese1f.github.io/), Xun Guo, Gaoang Wang, Yan Lu  
 > ICCV 2023
