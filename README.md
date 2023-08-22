@@ -23,6 +23,8 @@ https://github.com/rese1f/StableVideo/assets/58205475/0edbefdd-9b5f-4868-842c-9b
 
 - cpu: use cpu cache as ControlNet, args: `save_memory`
 
+under default setting (*e.g.* resolution, *etc.*) in `app.py`
+
 ## Installation
 ```
 git clone https://github.com/rese1f/StableVideo.git
