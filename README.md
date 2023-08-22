@@ -13,11 +13,26 @@ https://github.com/rese1f/StableVideo/assets/58205475/c152d0fa-16d3-4528-b9c2-ad
 https://github.com/rese1f/StableVideo/assets/58205475/0edbefdd-9b5f-4868-842c-9bf3156a54d3
 
 
+## VRAM requirement
+|   |VRAM (MiB)|
+|---|---|
+|float32|29145|
+|amp|23005|
+|amp + cpu|17639|
+|amp + cpu + xformers|14185|
+
+- cpu: use cpu cache as ControlNet, args: `save_memory`
+
 ## Installation
 ```
 git clone https://github.com/rese1f/StableVideo.git
 conda create -n stablevideo python=3.11
 pip install -r requirements.txt
+```
+
+optional but recommanded
+```
+pip install xformers
 ```
 
 ## Download Pretrained Model

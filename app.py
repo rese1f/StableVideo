@@ -28,7 +28,7 @@ from stablevideo.aggnet import AGGNet
 
 
 class StableVideo:
-    def __init__(self, base_cfg, canny_model_cfg, depth_model_cfg):
+    def __init__(self, base_cfg, canny_model_cfg, depth_model_cfg, save_memory=False):
         self.base_cfg = base_cfg
         self.canny_model_cfg = canny_model_cfg
         self.depth_model_cfg = depth_model_cfg
@@ -39,6 +39,7 @@ class StableVideo:
         self.f_atlas = None
         self.data = None
         self.crops = None
+        self.save_memory = save_memory
     
     def load_canny_model(
         self,
@@ -48,7 +49,6 @@ class StableVideo:
         self.apply_canny = CannyDetector()
         canny_model = create_model(base_cfg).cpu()
         canny_model.load_state_dict(load_state_dict(canny_model_cfg, location='cuda'), strict=False)
-        canny_model = canny_model.cuda()
         self.canny_ddim_sampler = DDIMSampler(canny_model)
         self.canny_model = canny_model
         
@@ -60,7 +60,6 @@ class StableVideo:
         self.apply_midas = MidasDetector()
         depth_model = create_model(base_cfg).cpu()
         depth_model.load_state_dict(load_state_dict(depth_model_cfg, location='cuda'), strict=False)
-        depth_model = depth_model.cuda()
         self.depth_ddim_sampler = DDIMSampler(depth_model)
         self.depth_model = depth_model
 
@@ -88,11 +87,6 @@ class StableVideo:
                     eta=0,
                     num_samples=1):
         
-        if self.depth_model == None:
-            self.load_depth_model(
-                base_cfg=self.base_cfg,
-                depth_model_cfg=self.depth_model_cfg
-            )
         size = input_image.size
         model = self.depth_model
         ddim_sampler = self.depth_ddim_sampler
@@ -118,11 +112,13 @@ class StableVideo:
         cond = {"c_concat": [control], "c_crossattn": [model.get_learned_conditioning([prompt + ', ' + a_prompt] * num_samples)]}
         un_cond = {"c_concat": [control], "c_crossattn": [model.get_learned_conditioning([n_prompt] * num_samples)]}
         shape = (4, H // 8, W // 8)
+    
 
         samples, intermediates = ddim_sampler.sample(ddim_steps, num_samples,
                                                      shape, cond, verbose=False, eta=eta,
                                                      unconditional_guidance_scale=scale,
                                                      unconditional_conditioning=un_cond)
+        
         x_samples = model.decode_first_stage(samples)
         x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
 
@@ -132,10 +128,16 @@ class StableVideo:
     
     @torch.no_grad()
     def edit_background(self, *args, **kwargs):
+        self.depth_model = self.depth_model.cuda()
+            
         input_image = self.b_atlas_origin
         self.depth_edit(input_image, *args, **kwargs)
+        
+        if self.save_memory:
+            self.depth_model = self.depth_model.cpu()
         return self.b_atlas
     
+    @torch.no_grad()
     def advanced_edit_foreground(self, 
                                 keyframes="0", 
                                 res=2000,
@@ -152,6 +154,8 @@ class StableVideo:
                                 eta=0,
                                 if_net=False,
                                 num_samples=1):
+
+        self.canny_model = self.canny_model.cuda()
         
         keyframes = [int(x) for x in keyframes.split(",")]
         if self.data is None:
@@ -168,9 +172,11 @@ class StableVideo:
         if seed == -1:
             seed = random.randint(0, 65535)
         seed_everything(seed)
+        
         self.canny_ddim_sampler.make_schedule(ddim_num_steps=ddim_steps, ddim_eta=eta, verbose=False)
         c_crossattn = [self.canny_model.get_learned_conditioning([prompt + ', ' + a_prompt])]
         uc_crossattn = [self.canny_model.get_learned_conditioning([n_prompt])]
+        
         for i in range(n_keyframes):
             # get current keyframe
             current_img = img_list[i]
@@ -182,8 +188,11 @@ class StableVideo:
             detected_map = HWC3(detected_map)
             control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
             control = einops.rearrange(control.unsqueeze(0), 'b h w c -> b c h w').clone()
+            
             cond = {"c_concat": [control], "c_crossattn": c_crossattn}
             un_cond = {"c_concat": [control], "c_crossattn": uc_crossattn}
+            
+            
             # if not the key frame, calculate the mapping from last atlas
             if i == 0:
                 latent = torch.randn((1, 4, H // 8, W // 8)).cuda()
@@ -272,6 +281,10 @@ class StableVideo:
         
         agg_atlas, _ = get_atlas_bounding_box(self.data.mask_boundaries, agg_atlas, self.data.foreground_all_uvs)
         self.f_atlas = transforms.ToPILImage()(agg_atlas)
+        
+        if self.save_memory:
+            self.canny_model = self.canny_model.cpu()
+        
         return self.f_atlas
 
     @torch.no_grad()
@@ -333,97 +346,99 @@ class StableVideo:
         return save_name
 
 if __name__ == '__main__':
-    stablevideo = StableVideo(base_cfg="ckpt/cldm_v15.yaml",
-                              canny_model_cfg="ckpt/control_sd15_canny.pth",
-                              depth_model_cfg="ckpt/control_sd15_depth.pth")
-    stablevideo.load_canny_model()
-    stablevideo.load_depth_model()
-    
-    block = gr.Blocks().queue()
-    with block:
-        with gr.Row():
-            gr.Markdown("## StableVideo")
-        with gr.Row():
-            with gr.Column():
-                original_video = gr.Video(label="Original Video", interactive=False)
-                with gr.Row():
-                    foreground_atlas = gr.Image(label="Foreground Atlas", type="pil")
-                    background_atlas = gr.Image(label="Background Atlas", type="pil")
-                gr.Markdown("### Step 1. select one example video and click **Load Video** buttom and wait for 10 sec.")
-                avail_video = [f.name for f in os.scandir("data") if f.is_dir()]
-                video_name = gr.Radio(choices=avail_video,
-                                      label="Select Example Videos",
-                                      value="car-turn")
-                load_video_button = gr.Button("Load Video")
-                gr.Markdown("### Step 2. write text prompt and advanced options for background and foreground.")
-                with gr.Row():
-                    f_prompt = gr.Textbox(label="Foreground Prompt", value="a picture of an orange suv")
-                    b_prompt = gr.Textbox(label="Background Prompt", value="winter scene, snowy scene, beautiful snow")
-                with gr.Row():
-                    with gr.Accordion("Advanced Foreground Options", open=False):
-                        adv_keyframes = gr.Textbox(label="keyframe", value="20, 40, 60")
-                        adv_atlas_resolution = gr.Slider(label="Atlas Resolution", minimum=1000, maximum=3000, value=2000, step=100)
-                        adv_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
-                        adv_low_threshold = gr.Slider(label="Canny low threshold", minimum=1, maximum=255, value=100, step=1)
-                        adv_high_threshold = gr.Slider(label="Canny high threshold", minimum=1, maximum=255, value=200, step=1)
-                        adv_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)
-                        adv_s = gr.Slider(label="Noise Scale", minimum=0.0, maximum=1.0, value=0.8, step=0.01)
-                        adv_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=15.0, value=9.0, step=0.1)
-                        adv_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
-                        adv_eta = gr.Number(label="eta (DDIM)", value=0.0)
-                        adv_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed, no background')
-                        adv_n_prompt = gr.Textbox(label="Negative Prompt", value='lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
-                        adv_if_net = gr.gradio.Checkbox(label="if use agg net", value=False)
-                        
-                    with gr.Accordion("Background Options", open=False):
-                        b_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
-                        b_detect_resolution = gr.Slider(label="Depth Resolution", minimum=128, maximum=1024, value=512, step=1)
-                        b_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)
-                        b_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=30.0, value=9.0, step=0.1)
-                        b_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
-                        b_eta = gr.Number(label="eta (DDIM)", value=0.0)
-                        b_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed')
-                        b_n_prompt = gr.Textbox(label="Negative Prompt",
-                                            value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
-                gr.Markdown("### Step 3. edit each one and render.")
-                with gr.Row():
-                    f_advance_run_button = gr.Button("Advanced Edit Foreground (slower, better)")
-                    b_run_button = gr.Button("Edit Background")
-                run_button = gr.Button("Render")
-            with gr.Column():
-                output_video = gr.Video(label="Output Video", interactive=False)
-                # output_foreground_atlas = gr.Image(label="Output Foreground Atlas", type="pil", interactive=False)
-                output_foreground_atlas = gr.ImageMask(label="Editable Output Foreground Atlas", type="pil", tool="sketch", interactive=True)
-                output_background_atlas = gr.Image(label="Output Background Atlas", type="pil", interactive=False)
+    with torch.cuda.amp.autocast():
+        stablevideo = StableVideo(base_cfg="ckpt/cldm_v15.yaml",
+                                canny_model_cfg="ckpt/control_sd15_canny.pth",
+                                depth_model_cfg="ckpt/control_sd15_depth.pth",
+                                save_memory=True)
+        stablevideo.load_canny_model()
+        stablevideo.load_depth_model()
         
-        # edit param
-        f_adv_edit_param = [adv_keyframes, 
-                            adv_atlas_resolution, 
-                            f_prompt, 
-                            adv_a_prompt, 
-                            adv_n_prompt, 
-                            adv_image_resolution, 
-                            adv_low_threshold, 
-                            adv_high_threshold, 
-                            adv_ddim_steps, 
-                            adv_s,
-                            adv_scale, 
-                            adv_seed, 
-                            adv_eta,
-                            adv_if_net]
-        b_edit_param = [b_prompt, 
-                        b_a_prompt, 
-                        b_n_prompt, 
-                        b_image_resolution, 
-                        b_detect_resolution, 
-                        b_ddim_steps, 
-                        b_scale, 
-                        b_seed,
-                        b_eta]
-        # action
-        load_video_button.click(fn=stablevideo.load_video, inputs=video_name, outputs=[original_video, foreground_atlas, background_atlas])
-        f_advance_run_button.click(fn=stablevideo.advanced_edit_foreground, inputs=f_adv_edit_param, outputs=[output_foreground_atlas])
-        b_run_button.click(fn=stablevideo.edit_background, inputs=b_edit_param, outputs=[output_background_atlas])
-        run_button.click(fn=stablevideo.render, inputs=[output_foreground_atlas, output_background_atlas], outputs=[output_video])
-    
-    block.launch(share=True)
+        block = gr.Blocks().queue()
+        with block:
+            with gr.Row():
+                gr.Markdown("## StableVideo")
+            with gr.Row():
+                with gr.Column():
+                    original_video = gr.Video(label="Original Video", interactive=False)
+                    with gr.Row():
+                        foreground_atlas = gr.Image(label="Foreground Atlas", type="pil")
+                        background_atlas = gr.Image(label="Background Atlas", type="pil")
+                    gr.Markdown("### Step 1. select one example video and click **Load Video** buttom and wait for 10 sec.")
+                    avail_video = [f.name for f in os.scandir("data") if f.is_dir()]
+                    video_name = gr.Radio(choices=avail_video,
+                                        label="Select Example Videos",
+                                        value="car-turn")
+                    load_video_button = gr.Button("Load Video")
+                    gr.Markdown("### Step 2. write text prompt and advanced options for background and foreground.")
+                    with gr.Row():
+                        f_prompt = gr.Textbox(label="Foreground Prompt", value="a picture of an orange suv")
+                        b_prompt = gr.Textbox(label="Background Prompt", value="winter scene, snowy scene, beautiful snow")
+                    with gr.Row():
+                        with gr.Accordion("Advanced Foreground Options", open=False):
+                            adv_keyframes = gr.Textbox(label="keyframe", value="20, 40, 60")
+                            adv_atlas_resolution = gr.Slider(label="Atlas Resolution", minimum=1000, maximum=3000, value=2000, step=100)
+                            adv_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
+                            adv_low_threshold = gr.Slider(label="Canny low threshold", minimum=1, maximum=255, value=100, step=1)
+                            adv_high_threshold = gr.Slider(label="Canny high threshold", minimum=1, maximum=255, value=200, step=1)
+                            adv_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)
+                            adv_s = gr.Slider(label="Noise Scale", minimum=0.0, maximum=1.0, value=0.8, step=0.01)
+                            adv_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=15.0, value=9.0, step=0.1)
+                            adv_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
+                            adv_eta = gr.Number(label="eta (DDIM)", value=0.0)
+                            adv_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed, no background')
+                            adv_n_prompt = gr.Textbox(label="Negative Prompt", value='lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
+                            adv_if_net = gr.gradio.Checkbox(label="if use agg net", value=False)
+                            
+                        with gr.Accordion("Background Options", open=False):
+                            b_image_resolution = gr.Slider(label="Image Resolution", minimum=256, maximum=768, value=512, step=256)
+                            b_detect_resolution = gr.Slider(label="Depth Resolution", minimum=128, maximum=1024, value=512, step=1)
+                            b_ddim_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=20, step=1)
+                            b_scale = gr.Slider(label="Guidance Scale", minimum=0.1, maximum=30.0, value=9.0, step=0.1)
+                            b_seed = gr.Slider(label="Seed", minimum=-1, maximum=2147483647, step=1, randomize=True)
+                            b_eta = gr.Number(label="eta (DDIM)", value=0.0)
+                            b_a_prompt = gr.Textbox(label="Added Prompt", value='best quality, extremely detailed')
+                            b_n_prompt = gr.Textbox(label="Negative Prompt",
+                                                value='longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality')
+                    gr.Markdown("### Step 3. edit each one and render.")
+                    with gr.Row():
+                        f_advance_run_button = gr.Button("Advanced Edit Foreground (slower, better)")
+                        b_run_button = gr.Button("Edit Background")
+                    run_button = gr.Button("Render")
+                with gr.Column():
+                    output_video = gr.Video(label="Output Video", interactive=False)
+                    # output_foreground_atlas = gr.Image(label="Output Foreground Atlas", type="pil", interactive=False)
+                    output_foreground_atlas = gr.ImageMask(label="Editable Output Foreground Atlas", type="pil", tool="sketch", interactive=True)
+                    output_background_atlas = gr.Image(label="Output Background Atlas", type="pil", interactive=False)
+            
+            # edit param
+            f_adv_edit_param = [adv_keyframes, 
+                                adv_atlas_resolution, 
+                                f_prompt, 
+                                adv_a_prompt, 
+                                adv_n_prompt, 
+                                adv_image_resolution, 
+                                adv_low_threshold, 
+                                adv_high_threshold, 
+                                adv_ddim_steps, 
+                                adv_s,
+                                adv_scale, 
+                                adv_seed, 
+                                adv_eta,
+                                adv_if_net]
+            b_edit_param = [b_prompt, 
+                            b_a_prompt, 
+                            b_n_prompt, 
+                            b_image_resolution, 
+                            b_detect_resolution, 
+                            b_ddim_steps, 
+                            b_scale, 
+                            b_seed,
+                            b_eta]
+            # action
+            load_video_button.click(fn=stablevideo.load_video, inputs=video_name, outputs=[original_video, foreground_atlas, background_atlas])
+            f_advance_run_button.click(fn=stablevideo.advanced_edit_foreground, inputs=f_adv_edit_param, outputs=[output_foreground_atlas])
+            b_run_button.click(fn=stablevideo.edit_background, inputs=b_edit_param, outputs=[output_background_atlas])
+            run_button.click(fn=stablevideo.render, inputs=[output_foreground_atlas, output_background_atlas], outputs=[output_video])
+        
+        block.launch(share=True)
