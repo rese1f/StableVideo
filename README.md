@@ -73,6 +73,10 @@ python app.py
 ```
 the result `.mp4` video and keyframe will be stored in the directory `./log` after clicking `render` button.
 
+You can also edit the mask region for the foreground atlas as follows.
+
+![image](https://github.com/rese1f/StableVideo/assets/58205475/13e11c07-39ae-4d2d-8b66-f900d168ceff)
+
 ## Acknowledgement
 
 This implementation is built partly on [Text2LIVE](https://github.com/omerbt/Text2LIVE) and [ControlNet](https://github.com/lllyasviel/ControlNet).
