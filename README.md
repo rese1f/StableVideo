@@ -77,6 +77,10 @@ You can also edit the mask region for the foreground atlas as follows. Currently
 
 ![image](https://github.com/rese1f/StableVideo/assets/58205475/13e11c07-39ae-4d2d-8b66-f900d168ceff)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=rese1f/StableVideo&type=Date)](https://star-history.com/#rese1f/StableVideo&Date)
+
 ## Citation
 If our work is useful for your research, please consider citing as below. Many thanks :)
 ```
