@@ -73,9 +73,20 @@ python app.py
 ```
 the result `.mp4` video and keyframe will be stored in the directory `./log` after clicking `render` button.
 
-You can also edit the mask region for the foreground atlas as follows.
+You can also edit the mask region for the foreground atlas as follows. Currently there might be a bug in Gradio. Please carefully check if the `editable output foreground atlas block` looks the same as the one above. If not, try to restart the entire program.
 
 ![image](https://github.com/rese1f/StableVideo/assets/58205475/13e11c07-39ae-4d2d-8b66-f900d168ceff)
+
+## Citation
+If our work is useful for your research, please consider citing as below. Many thanks :)
+```
+@article{chai2023stablevideo,
+  title={StableVideo: Text-driven Consistency-aware Diffusion Video Editing},
+  author={Chai, Wenhao and Guo, Xun and Wang, Gaoang and Lu, Yan},
+  journal={arXiv preprint arXiv:2308.09592},
+  year={2023}
+}
+```
 
 ## Acknowledgement
 
