@@ -32,7 +32,7 @@ conda create -n stablevideo python=3.11
 pip install -r requirements.txt
 ```
 
-optional but recommanded
+optional but recommended
 ```
 pip install xformers
 ```
