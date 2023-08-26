@@ -26,18 +26,19 @@ https://github.com/rese1f/StableVideo/assets/58205475/0edbefdd-9b5f-4868-842c-9b
 
 under default setting (*e.g.* resolution, *etc.*) in `app.py`
 
-We also provide CPU version [huggingface demo](https://huggingface.co/spaces/Reself/StableVideo).
-
 ## Installation
 ```
 git clone https://github.com/rese1f/StableVideo.git
 conda create -n stablevideo python=3.11
 pip install -r requirements.txt
+(optional) pip install xformers 
 ```
 
-optional but recommanded
+(optional) We also provide CPU only version [huggingface demo](https://huggingface.co/spaces/Reself/StableVideo).
 ```
-pip install xformers
+git lfs install
+git clone https://huggingface.co/spaces/Reself/StableVideo
+pip install -r requirements.txt
 ```
 
 ## Download Pretrained Model
