@@ -297,6 +297,9 @@ class StableVideo:
             f_atlas_origin = transforms.ToTensor()(self.f_atlas_origin).unsqueeze(0).cuda()
             f_atlas = transforms.ToTensor()(f_atlas).unsqueeze(0).cuda()
             mask = transforms.ToTensor()(mask).unsqueeze(0).cuda()
+            if f_atlas.shape != mask.shape:
+                print("Warning: truncating mask to atlas shape {}".format(f_atlas.shape))
+                mask = mask[:f_atlas.shape[0], :f_atlas.shape[1], :f_atlas.shape[2], :f_atlas.shape[3]]
             f_atlas = f_atlas * (1 - mask) + f_atlas_origin * mask
         
         f_atlas = torch.nn.functional.pad(
