@@ -1,10 +1,11 @@
 # StableVideo
 
 [![](http://img.shields.io/badge/cs.CV-arXiv%3A2308.09592-B31B1B.svg)](https://arxiv.org/abs/2308.09592)
+[![](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-orange)](https://huggingface.co/spaces/Reself/StableVideo)
 
-> StableVideo: Text-driven Consistency-aware Diffusion Video Editing  
-> [Wenhao Chai](https://rese1f.github.io/), Xun Guo, Gaoang Wang, Yan Lu  
-> ICCV 2023
+> **StableVideo: Text-driven Consistency-aware Diffusion Video Editing**  
+> Wenhao Chai, Xun Guo✉️, Gaoang Wang, Yan Lu  
+> _ICCV 2023_
 
 https://github.com/rese1f/StableVideo/assets/58205475/558555f1-711c-46f0-85bc-9c229ff1f511
 
@@ -21,9 +22,11 @@ https://github.com/rese1f/StableVideo/assets/58205475/0edbefdd-9b5f-4868-842c-9b
 |amp + cpu|17639|
 |amp + cpu + xformers|14185|
 
-- cpu: use cpu cache as ControlNet, args: `save_memory`
+- cpu: use cpu cache, args: `save_memory`
 
 under default setting (*e.g.* resolution, *etc.*) in `app.py`
+
+We also provide CPU version [huggingface demo](https://huggingface.co/spaces/Reself/StableVideo).
 
 ## Installation
 ```
