@@ -71,7 +71,7 @@ StableVideo
 ```
 
 ## Run and Play!
-Run the following command to start. We provide some [prompt template](prompt_template.md) to help you achieve better result.
+Run the following command to start.
 ```
 python app.py
 ```
