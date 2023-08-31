@@ -13,6 +13,8 @@ https://github.com/rese1f/StableVideo/assets/58205475/c152d0fa-16d3-4528-b9c2-ad
 
 https://github.com/rese1f/StableVideo/assets/58205475/0edbefdd-9b5f-4868-842c-9bf3156a54d3
 
+## Colab Notebook Example
+https://colab.research.google.com/drive/1NkOw70r1ObVT-Y9Do2e7jQF6geoiYTZi?usp=sharing
 
 ## VRAM requirement
 |   |VRAM (MiB)|
