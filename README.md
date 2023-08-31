@@ -79,7 +79,8 @@ the result `.mp4` video and keyframe will be stored in the directory `./log` aft
 
 You can also edit the mask region for the foreground atlas as follows. Currently there might be a bug in Gradio. Please carefully check if the `editable output foreground atlas block` looks the same as the one above. If not, try to restart the entire program.
 
-![image](https://github.com/rese1f/StableVideo/assets/58205475/13e11c07-39ae-4d2d-8b66-f900d168ceff)
+<img width="916" alt="" src="https://github.com/rese1f/StableVideo/assets/58205475/ec8dd9f0-84fb-43ca-baaa-fb6c58da0d77">
+
 
 ## Citation
 If our work is useful for your research, please consider citing as below. Many thanks :)
