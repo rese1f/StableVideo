@@ -55,6 +55,9 @@ And it will create a folder data:
 ```
 StableVideo
 ├── ...
+├── annotator
+│   └── ckpts
+│       └── cdpt_hybrid-midas-501f0c75.pt
 ├── ckpt
 │   ├── cldm_v15.yaml
 |   ├── dpt_hybrid-midas-501f0c75.pt

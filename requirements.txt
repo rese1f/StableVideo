@@ -120,3 +120,5 @@ wcwidth==0.2.6
 websockets==11.0.3
 Werkzeug==2.3.7
 yarl==1.9.2
+tb-nightly
+basicsr==1.4.2
