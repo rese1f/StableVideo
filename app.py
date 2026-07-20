@@ -251,7 +251,7 @@ class StableVideo:
 
         f_atlas = f_atlas.permute(0, 3, 2, 1)
         
-        # aggregate via simple median as begining
+        # aggregate via simple median as beginning
         agg_atlas, _ = torch.median(f_atlas, dim=0)
         
         if if_net == True:
